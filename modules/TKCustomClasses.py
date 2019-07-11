@@ -1,9 +1,17 @@
 import tkinter as tk
 import datetime
+import math
 from matplotlib.lines import Line2D
 
-class MapPoint(object):
-    def __init__(self, magnitude, place, time, felt, cdi, mmi, alert, tsunami, sig, title, status, dmin, gap, magtype, type_):
+class MapPoint(Line2D):
+    def __init__(self, x, y, magnitude, place, time, felt, cdi, mmi, alert, tsunami, sig, title, status, dmin, gap, magtype, type_):
+
+        markersize = math.pow(2, magnitude)/math.pow(2, magnitude//2)
+        if markersize<=3: color="g"
+        elif 3<markersize<=5.7: color="y"
+        else: color="r"
+        super().__init__(xdata=[x,], ydata=[y,],marker="o",markersize=markersize,color=color,alpha=.45,picker=markersize)
+
         self.title = title
         self.place = place
         self.time = datetime.datetime.fromtimestamp(time/1000.0).isoformat()
@@ -19,13 +27,4 @@ class MapPoint(object):
         self.gap = gap
         self.magtype = magtype
         self.type_ = type_
-        self.line_obj = None
-    
-    def create_line_obj(self, x, y):
-        '''
-        Function for creating a line2D object to have a reference to and be able
-        to plot on the figure
-        '''
-        markersize = 2+(self.magnitude*1.5)
-        self.line_obj = Line2D(x, y, marker="o", markersize=markersize, color="r", alpha=.45, picker=4)
 
