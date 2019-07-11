@@ -1,6 +1,7 @@
 
 
 from tkinter import messagebox
+from itertools import chain
 import tkinter as tk
 import time
 import json
@@ -12,6 +13,7 @@ import matplotlib as mp
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from mpl_toolkits.basemap import Basemap
+from matplotlib.lines import Line2D
 mp.use("TkAgg")
 
 from TKCustomClasses import MapPoint
@@ -31,8 +33,6 @@ def create_counter(parent, label_text, current_value, min_, max_, increment):
     return Pmw.Counter(parent, labelpos="w", label_text=label_text,
         label_justify="left", entryfield_value=current_value, datatype={"counter":"real", "separator":"."},
         entryfield_validate = {"validator":"real", "min":min_, "max":max_, "separator":"."}, increment=increment)
-
-#def create_label(parent, label_text,)
 
 class SettingsPage(tk.Frame):
     '''
@@ -278,16 +278,25 @@ class MapPage(tk.Frame):
         self.map_frame = tk.Frame(self)
         self.map_frame.pack(side="bottom", fill="both", expand=True)
 
-        self.map_figure = plt.figure(num=None, figsize=(16,4))
+        legend_elements = [Line2D([0], [0], marker="o", color="g", label="Small"),
+                    Line2D([0], [0], marker="o", color="y", label="Medium"),
+                    Line2D([0], [0], marker="o", color="r", label="Large")]
+
+        self.map_figure = plt.figure(num=None, figsize=(12, 4))
         self.map_axes = self.map_figure.add_subplot(111)
+        self.map_axes_legend = self.map_axes.legend(handles=legend_elements, loc="upper right")
+        self.map_axes.set_title("Earthquake Events - Mercator Projection")
         self.map_figure.tight_layout()
+
         self.figure_basemap = Basemap(projection="merc", llcrnrlat=-80, urcrnrlat=80,
             llcrnrlon=-180, urcrnrlon=180, resolution="c")
+        
         self.figure_basemap.drawcoastlines()
-        self.figure_basemap.fillcontinents(color="lightgreen", lake_color="lightblue")
+        self.figure_basemap.fillcontinents(color="tan", lake_color="lightblue")
         self.figure_basemap.drawparallels(np.arange(-90.,91.,30.), labels=(True, True, False, False), dashes=(2,2))
         self.figure_basemap.drawmeridians(np.arange(-180.,181.,60.), labels=(False, False, False, True), dashes=(2,2))
         self.figure_basemap.drawmapboundary(fill_color="lightblue")
+        self.figure_basemap.drawcountries()
 
         self.figure_canvas = FigureCanvasTkAgg(self.map_figure, self.map_frame)
         self.figure_canvas.draw()
@@ -316,26 +325,25 @@ class MapPage(tk.Frame):
 
     def plot_points(self, filedata):
         '''
-        Function for creating MapPoint objects and plotting their line objects on the figure
+        Function for creating MapPoint objects and plotting them on the figure
         '''
         self.map_axes.lines.clear()
         self.current_line_objs.clear()
         for quake in filedata["features"]:
-            new_point = MapPoint(quake["properties"]["mag"], quake["properties"]["place"],
+            lat=quake["geometry"]["coordinates"][1]
+            if lat > 80: lat=80
+            elif lat <-80: lat=-80
+            nx,ny = self.figure_basemap((quake["geometry"]["coordinates"][0],), (lat,))
+
+            new_point = MapPoint(nx, ny, quake["properties"]["mag"], quake["properties"]["place"],
                 quake["properties"]["time"], quake["properties"]["felt"], quake["properties"]["cdi"],
                 quake["properties"]["mmi"], quake["properties"]["alert"], quake["properties"]["tsunami"],
                 quake["properties"]["sig"], quake["properties"]["title"], quake["properties"]["status"],
                 quake["properties"]["dmin"], quake["properties"]["gap"], quake["properties"]["magType"],
                 quake["properties"]["type"])
             
-            lat=quake["geometry"]["coordinates"][1]
-            if lat > 80: lat=80
-            elif lat <-80: lat=-80
-
-            nx,ny = self.figure_basemap((quake["geometry"]["coordinates"][0],), (lat,))
-            new_point.create_line_obj(nx, ny)
             self.current_line_objs+=[new_point]
-            self.map_axes.add_line(new_point.line_obj)
+            self.map_axes.add_line(new_point)
         self.figure_canvas.draw()
     
     def display_point_info(self, event):
@@ -343,15 +351,11 @@ class MapPage(tk.Frame):
         Function when an individual point is picked, prompts the user to view information about it
         '''
         line_obj = event.artist
-        for mappoint in self.current_line_objs:
-            if mappoint.line_obj is line_obj:
-                found_point = mappoint
-                message="Here is more info about the point - {}".format(mappoint.place)
-                break
+        message="Here is more info about the point - {}".format(line_obj.place)
         
         messagebox.showinfo(title="Point Selected", message=message)
         self.figure_canvas.mpl_disconnect(self.canvas_pick_event)
-        self.controller.call_display_info(found_point)
+        self.controller.call_display_info(line_obj)
         self.controller.show_frame("PointInfoPage")
 
     def reconnect_pick_event(self):
