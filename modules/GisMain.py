@@ -59,6 +59,8 @@ class GISMain(tk.Tk):
         '''
         page = self.frames["PointInfoPage"]
         page.configure_labels(point_obj)
+        page.configure_scrolledtext()
+        page.configure_event_photo()
     
     def on_close_window(self):
         '''
@@ -66,6 +68,10 @@ class GISMain(tk.Tk):
         program is closed its no longer needed
         '''
         filename="current_data.json"
+        if os.path.isfile(filename):
+            os.remove(filename)
+            
+        filename="current_image.png"
         if os.path.isfile(filename):
             os.remove(filename)
         self.destroy()
