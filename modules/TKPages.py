@@ -1,10 +1,11 @@
 
 
 from tkinter import messagebox
-from itertools import chain
 import tkinter as tk
+import shutil
 import time
 import json
+import re
 
 import Pmw
 import requests
@@ -14,6 +15,8 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from mpl_toolkits.basemap import Basemap
 from matplotlib.lines import Line2D
+from bs4 import BeautifulSoup as BS4
+from PIL import ImageTk, Image
 mp.use("TkAgg")
 
 from TKCustomClasses import MapPoint
@@ -234,6 +237,7 @@ class SettingsPage(tk.Frame):
         if self.controller.current_url == chosen_url:
             return
         else:
+            messagebox.showinfo(title="Loading", message="Fetching data please wait for another notification...")
             try:
                 response = requests.get(chosen_url)
             except requests.exceptions.ConnectionError:
@@ -278,9 +282,9 @@ class MapPage(tk.Frame):
         self.map_frame = tk.Frame(self)
         self.map_frame.pack(side="bottom", fill="both", expand=True)
 
-        legend_elements = [Line2D([0], [0], marker="o", color="g", label="Small"),
-                    Line2D([0], [0], marker="o", color="y", label="Medium"),
-                    Line2D([0], [0], marker="o", color="r", label="Large")]
+        legend_elements = [Line2D([0], [0], marker="o", color="g", label="Small (below 3)"),
+                    Line2D([0], [0], marker="o", color="y", label="Medium (below 6)"),
+                    Line2D([0], [0], marker="o", color="r", label="Large (above 6)")]
 
         self.map_figure = plt.figure(num=None, figsize=(12, 4))
         self.map_axes = self.map_figure.add_subplot(111)
@@ -372,8 +376,8 @@ class PointInfoPage(tk.Frame):
         super().__init__(parent)
         self.controller = controller
         self.infopage_balloon = Pmw.Balloon(self)
-        self.font = ("Helvitica", 18)
-        self.title_font = ("Helvetica", 18, "bold")
+        self.font = ("Helvitica", 12)
+        self.title_font = ("Helvetica", 12, "bold")
 
         self.menubar = Pmw.MenuBar(self, hull_relief="raised", hull_borderwidth=1, balloon=self.infopage_balloon)
         self.menubar.pack(fill="x")
@@ -389,31 +393,52 @@ class PointInfoPage(tk.Frame):
             command=lambda: self.on_show_frame("SettingsPage"), label="Settings Page")
 
         self.label_title = tk.Label(self, text="Default Title", font=self.title_font)
+        self.labelframe_container = tk.Frame(self)
+        
+        self.bulletpoint_labelframe = tk.LabelFrame(self.labelframe_container, text="Event Properties", font=self.title_font)
+        self.bulletpoint_frame_left = tk.Frame(self.bulletpoint_labelframe)
+        self.bulletpoint_frame_right = tk.Frame(self.bulletpoint_labelframe)
 
-        self.labelframe_container = tk.LabelFrame(self, text="Additional Information:", font=self.title_font)
-        self.frame_left = tk.Frame(self.labelframe_container)
-        self.frame_right = tk.Frame(self.labelframe_container)
+        self.wiki_labelframe = tk.LabelFrame(self.labelframe_container, text="Additional Information", font=self.title_font)
+        self.wiki_frame_top = tk.Frame(self.wiki_labelframe)
+        self.wiki_frame_bottom = tk.Frame(self.wiki_labelframe)
         
         self.label_title.pack(side="top", fill="x")
-        self.labelframe_container.pack(side="bottom", fill="both", expand=True, padx=10, pady=5)
-        self.frame_left.pack(side="left", fill="both", expand=True)
-        self.frame_right.pack(side="right", fill="both", expand=True)
+        self.labelframe_container.pack(side="bottom", fill="both", expand=True)
+        self.bulletpoint_labelframe.pack(side="left", fill="both", expand=True, padx=5, pady=5)
+        self.bulletpoint_frame_left.pack(side="left", fill="both", expand=True)
+        self.bulletpoint_frame_right.pack(side="right", fill="both", expand=True)
 
-        self.place_label = tk.Label(self.frame_left, text="Place:", font=self.font)
-        self.time_label = tk.Label(self.frame_left, text="Time:", font=self.font)
-        self.gap_label = tk.Label(self.frame_left, text="Gap:", font=self.font)
-        self.dmin_label = tk.Label(self.frame_left, text="Dmin:", font=self.font)
-        self.status_label = tk.Label(self.frame_left, text="Status:", font=self.font)
-        self.alert_label = tk.Label(self.frame_left, text="Alert:", font=self.font)
-        self.felt_label = tk.Label(self.frame_left, text="Felt:", font=self.font)
+        self.wiki_labelframe.pack(side="left", fill="both", expand=True, padx=5, pady=5)
+        self.wiki_frame_top.pack(side="top", fill="both", expand=True)
+        self.wiki_frame_bottom.pack(side="bottom", fill="both", expand=True)
 
-        self.mag_label = tk.Label(self.frame_right, text="Magnitude:", font=self.font)
-        self.type_label = tk.Label(self.frame_right, text="Type:", font=self.font)
-        self.magtype_label = tk.Label(self.frame_right, text="Magnitude Type:", font=self.font)
-        self.sig_label = tk.Label(self.frame_right, text="Significance:", font=self.font)
-        self.tsunami_label = tk.Label(self.frame_right, text="Tsunami:", font=self.font)
-        self.mmi_label = tk.Label(self.frame_right, text="MMI:", font=self.font)
-        self.cdi_label = tk.Label(self.frame_right, text="CDI:", font=self.font)
+        self.wiki_scrolledtext = Pmw.ScrolledText(self.wiki_frame_bottom, text_padx=4, text_pady=4)
+        self.wiki_scrolledtext.configure(text_state="disabled")
+
+        image = Image.open("default_image.png")
+        self.wiki_photo = ImageTk.PhotoImage(image)
+        self.wiki_photo_label = tk.Label(self.wiki_frame_top, image=self.wiki_photo)
+        self.wiki_photo_label.image = self.wiki_photo
+
+        self.wiki_scrolledtext.pack(fill="both", expand=True, padx=5, pady=5)
+        self.wiki_photo_label.pack(fill="both", expand=True, padx=5, pady=5)
+
+        self.place_label = tk.Label(self.bulletpoint_frame_left, text="Place:", font=self.font)
+        self.time_label = tk.Label(self.bulletpoint_frame_left, text="Time:", font=self.font)
+        self.gap_label = tk.Label(self.bulletpoint_frame_left, text="Gap:", font=self.font)
+        self.dmin_label = tk.Label(self.bulletpoint_frame_left, text="Dmin:", font=self.font)
+        self.status_label = tk.Label(self.bulletpoint_frame_left, text="Status:", font=self.font)
+        self.alert_label = tk.Label(self.bulletpoint_frame_left, text="Alert:", font=self.font)
+        self.felt_label = tk.Label(self.bulletpoint_frame_left, text="Felt:", font=self.font)
+
+        self.mag_label = tk.Label(self.bulletpoint_frame_right, text="Magnitude:", font=self.font)
+        self.type_label = tk.Label(self.bulletpoint_frame_right, text="Type:", font=self.font)
+        self.magtype_label = tk.Label(self.bulletpoint_frame_right, text="Magnitude Type:", font=self.font)
+        self.sig_label = tk.Label(self.bulletpoint_frame_right, text="Significance:", font=self.font)
+        self.tsunami_label = tk.Label(self.bulletpoint_frame_right, text="Tsunami:", font=self.font)
+        self.mmi_label = tk.Label(self.bulletpoint_frame_right, text="MMI:", font=self.font)
+        self.cdi_label = tk.Label(self.bulletpoint_frame_right, text="CDI:", font=self.font)
 
         balloon_helps = (
             (self.place_label, "Description of named geograpic region near to the event"),
@@ -434,7 +459,7 @@ class PointInfoPage(tk.Frame):
         
         for widget, helpmsg in balloon_helps:
             self.infopage_balloon.bind(widget, helpmsg)
-            widget.pack(pady=10)
+            widget.pack(pady=10, anchor="w")
 
     def on_show_frame(self, page_name):
         self.controller.call_reconnect()
@@ -457,3 +482,100 @@ class PointInfoPage(tk.Frame):
         self.tsunami_label.config(text="Tsunami: {}".format(point_obj.tsunami))
         self.mmi_label.config(text="MMI: {}".format(point_obj.mmi))
         self.cdi_label.config(text="CDI: {}".format(point_obj.cdi))
+
+    def configure_scrolledtext(self):
+        text_content = self.get_wiki_text()
+        if not text_content:
+            text_content = "No Information Found"
+        self.wiki_scrolledtext.settext(text_content)
+
+    def configure_event_photo(self):
+        use_default = "current_image.png" if self.get_wiki_image() else "default_image.png"
+        
+        image = Image.open(use_default)
+        self.wiki_photo = ImageTk.PhotoImage(image)
+        self.wiki_photo_label.config(image=self.wiki_photo)
+        self.wiki_photo_label.image = self.wiki_photo
+
+    def wiki_image_url_request(self):
+        response = requests.get("https://en.wikipedia.org/w/api.php?action=query&titles={}&prop=pageimages&format=json&pithumbsize=300".format(self.wiki_image_data))
+        data = response.json()
+        data = data["query"]["pages"]
+        key = "".join(data.keys())
+
+        if key == "-1":
+            return False
+        
+        if data[key].get("thumbnail", None) is None:
+            return False
+        
+        data = data[key]["thumbnail"]["source"]
+
+        return data
+
+    def get_wiki_image(self):
+        image_url = self.wiki_image_url_request()
+        if not image_url:
+            return False
+        
+        response = requests.get(image_url, stream=True)
+        with open("current_image.png", "wb") as out_file:
+            shutil.copyfileobj(response.raw, out_file)
+        del response
+
+        return True
+
+    def wiki_text_url_request(self, data):
+        response = requests.get("https://en.wikipedia.org/w/api.php?action=parse&format=json&section=0&prop=text&page={}".format(data))
+        if response.ok:
+            data = response.json()
+            if "error" in data.keys():
+                return False
+            else:
+                data = data["parse"]["text"]["*"]
+                return data
+
+    def get_wiki_text(self):
+        search_data = self.place_label.cget("text").split()
+        if not search_data[1][0].isdigit():
+            self.wiki_image_data = False
+            return False
+        
+        search_data = " ".join(search_data[4:])
+        response = self.wiki_text_url_request(search_data)
+        if not response:
+            search_data = search_data.split(",")
+            response = self.wiki_text_url_request(search_data[0])
+            if not response:
+                response = self.wiki_text_url_request(search_data[1])
+                if not response:
+                    return False
+                else:
+                    self.wiki_image_data = search_data[1]
+            else:
+                self.wiki_image_data = search_data[0]
+        else:
+            self.wiki_image_data = search_data
+
+        soup = BS4(response, features="lxml")
+        data = soup.find("p").getText()
+        if "Redirect to:" in data:
+            data = soup.find("a").getText()
+            self.wiki_image_data = data
+            response = self.wiki_text_url_request(data)
+        elif "commonly refers to:" in search_data or "may also refer to:" in search_data:
+            data = soup.find_all("a")[1]
+            self.wiki_image_data = data
+            response = self.wiki_text_url_request(data)
+        elif "may refer to:" in data:
+            self.wiki_image_data = search_data[1]
+            response = self.wiki_text_url_request(search_data[1])
+        
+        soup = BS4(response, features="lxml")
+        all_text=""
+        for string in soup.find_all("p"):
+            if "\n" not in string:
+                all_text+=string.get_text()
+        all_text = "".join(re.split("\[\d+\]", all_text))
+
+        return all_text
