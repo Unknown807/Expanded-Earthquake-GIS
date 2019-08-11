@@ -1,7 +1,9 @@
 import os
 import sys
 import tkinter as tk
-from TKPages import SettingsPage, MapPage, PointInfoPage
+from SettingsPage import SettingsPage
+from MapPage import MapPage
+from PointInfoPage import PointInfoPage
 
 class GISMain(tk.Tk):
     '''
