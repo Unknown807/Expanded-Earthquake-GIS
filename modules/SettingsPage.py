@@ -28,6 +28,7 @@ class SettingsPage(tk.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent)
         self.controller = controller
+        self.field_font = ("Helvitica", 16)
         self.setpage_balloon = Pmw.Balloon(self)
 
         self.menubar = Pmw.MenuBar(self, hull_relief="raised", hull_borderwidth=1, balloon=self.setpage_balloon)
@@ -57,15 +58,20 @@ class SettingsPage(tk.Frame):
 
         self.query_labelframe = tk.LabelFrame(self.options_frame, text="Query Options", padx=3, pady=3)
         self.coord_labelframe = tk.LabelFrame(self.options_frame, text="Search Options", padx=3, pady=3)
+        self.coordframe_right_container = tk.Frame(self.coord_labelframe)
+        self.searchtype_labelframe = tk.LabelFrame(self.coordframe_right_container, text="Search Type")
         
-        self.coordframe_left = tk.Frame(self.coord_labelframe)
-        self.coordframe_right = tk.Frame(self.coord_labelframe)
-        self.coordframe_left.pack(side="left", fill="both", expand=True)
-        self.coordframe_right.pack(side="left", fill="both", expand=True)
+        
+        self.coordframe_left = tk.LabelFrame(self.coord_labelframe, text="Rectangle Search")
+        self.coordframe_right = tk.LabelFrame(self.coordframe_right_container, text="Circle Search")
+        self.coordframe_left.pack(side="left", fill="both", expand=True, padx=3, pady=3)
+        self.coordframe_right.pack(side="top", fill="both", expand=True, padx=3, pady=3)
         
         self.extra_labelframe = tk.LabelFrame(self.options_frame, text="Additional Options", padx=3, pady=3)
 
         self.options_frame.pack(side="top", fill="both", expand=True, padx=2, pady=2)
+        self.coordframe_right_container.pack(side="left", fill="both", expand=True, padx=3, pady=3)
+        self.searchtype_labelframe.pack(side="bottom", fill="both", expand=True, padx=3, pady=3)
         self.query_labelframe.pack(side="left", fill="both", expand=True, padx=5, pady=5)
         self.coord_labelframe.pack(side="left", fill="both", expand=True, padx=5, pady=5)
         self.extra_labelframe.pack(side="left", fill="both", expand=True, padx=5, pady=5)
@@ -100,7 +106,7 @@ class SettingsPage(tk.Frame):
         self.url_time_menu = Pmw.OptionMenu(self.extra_labelframe, labelpos="w", label_text="URL Time:",
             items=("Hour", "Day", "Week", "Month"), menubutton_width=10, command=None)
         
-        self.circ_rect_search_menu = Pmw.OptionMenu(self.coordframe_right, labelpos="w", label_text="Search Option:",
+        self.circ_rect_search_menu = Pmw.OptionMenu(self.searchtype_labelframe, labelpos="w", label_text="Search Option:",
             items=("Rectangle", "Circle"), menubutton_width=10, command=None)
 
         self.minlat_counter = create_counter(self.coordframe_left, "Min Latitude:", "-90", "-90", "90", 0.5)
@@ -140,7 +146,8 @@ class SettingsPage(tk.Frame):
 
         for widget, helpmsg in balloon_helps:
             self.setpage_balloon.bind(widget, helpmsg)
-            widget.pack(pady=5)
+            widget.component("label").configure(font=self.field_font)
+            widget.pack(padx=5, fill="y", expand=True)
 
     def validate_data(self):
         '''
@@ -158,22 +165,22 @@ class SettingsPage(tk.Frame):
             if (startdate and enddate):
                 base_url += f"&starttime={startdate}T{starttime}{timezone}&endtime={enddate}T{endtime}{timezone}"
             else: 
-                messagebox.showerror(title="Date Error", message="Sorry, the dates entered are incorrect")
+                #messagebox.showerror(title="Date Error", message="Sorry, the dates entered are incorrect")
                 return "Bad Date"
         else: 
-            messagebox.showerror(title="Time Error", message="Sorry, the times entered are inccorect")
+            #messagebox.showerror(title="Time Error", message="Sorry, the times entered are inccorect")
             return "Bad Time"
 
         search_type=self.circ_rect_search_menu.getcurselection()
         if search_type == "Rectangle":
-            minlat = int(self.minlat_counter.component("entry").get())
-            maxlat = int(self.maxlat_counter.component("entry").get())
-            minlong = int(self.minlong_counter.component("entry").get())
-            maxlong = int(self.maxlong_counter.component("entry").get())
+            minlat = self.minlat_counter.component("entry").get()
+            maxlat = self.maxlat_counter.component("entry").get()
+            minlong = self.minlong_counter.component("entry").get()
+            maxlong = self.maxlong_counter.component("entry").get()
             if (minlat and maxlat and minlong and maxlong) and (minlat < maxlat and minlong < maxlong):
                 base_url += f"&minlatitude={minlat}&maxlatitude={maxlat}&minlongitude={minlong}&maxlongitude={maxlong}"
             else: 
-                messagebox.showerror(title="Rectangle Search Error", message="Please check that you've entered the min/max latitudes\nand longitudes correctly for the rectangle search")
+                #messagebox.showerror(title="Rectangle Search Error", message="Please check that you've entered the min/max latitudes\nand longitudes correctly for the rectangle search")
                 return "Bad Rectangle Options"
 
         elif search_type == "Circle":
@@ -183,27 +190,27 @@ class SettingsPage(tk.Frame):
             if (lat and long_ and maxradius):
                 base_url += f"&latitude={lat}&longitude={long_}&maxradius={maxradius}"
             else: 
-                messagebox.showerror(title="Circle Search Error", message="Please check that you've entered the lat/long/maxradius correctly for the circle search")
+                #messagebox.showerror(title="Circle Search Error", message="Please check that you've entered the lat/long/maxradius correctly for the circle search")
                 return "Bad Circle Options"
 
-        mindepth = int(self.mindepth_counter.component("entry").get())
-        maxdepth = int(self.maxdepth_counter.component("entry").get())
-        minmag = int(self.minmag_counter.component("entry").get())
-        maxmag = int(self.maxmag_counter.component("entry").get())
+        mindepth = self.mindepth_counter.component("entry").get()
+        maxdepth = self.maxdepth_counter.component("entry").get()
+        minmag = self.minmag_counter.component("entry").get()
+        maxmag = self.maxmag_counter.component("entry").get()
         limit = self.limit_counter.component("entry").get()
 
         if limit:
             if (mindepth and maxdepth) and (mindepth < maxdepth):
-                if (str(minmag) and maxmag) and (minmag < maxmag):
+                if (minmag and maxmag) and (minmag < maxmag):
                     base_url += f"&mindepth={mindepth}&maxdepth={maxdepth}&minmagnitude={minmag}&maxmagnitude={maxmag}&limit={limit}"
                 else: 
-                    messagebox.showerror(title="Magnitude Error", message="Please check that you've entered the min/max magnitude\nfields correctly")
+                    #messagebox.showerror(title="Magnitude Error", message="Please check that you've entered the min/max magnitude\nfields correctly")
                     return "Bad Min/Max Magnitudes"
             else: 
-                messagebox.showerror(title="Depth Error", message="Please check that you've entered the min/max depth fields correctly")
+                #messagebox.showerror(title="Depth Error", message="Please check that you've entered the min/max depth fields correctly")
                 return "Bad Min/Max Depths"
         else: 
-            messagebox.showerror(title="Search Limit Error", message="Please check that the search limit you've entered is valid")
+            #messagebox.showerror(title="Search Limit Error", message="Please check that the search limit you've entered is valid")
             return "Bad Limit"
 
         self.request_new_data(base_url)
@@ -221,20 +228,19 @@ class SettingsPage(tk.Frame):
         if self.controller.current_url == chosen_url:
             return
         else:
-            messagebox.showinfo(title="Loading", message="Fetching data please wait for another notification...")
+            #messagebox.showinfo(title="Loading", message="Fetching data please wait for another notification...")
             try:
                 response = requests.get(chosen_url)
             except requests.exceptions.ConnectionError:
-                messagebox.showerror(title="Connection Error", message="Please check you're internet connection\nas a request could not be made")
+                #messagebox.showerror(title="Connection Error", message="Please check you're internet connection\nas a request could not be made")
                 return "Bad Connection"
             if not response.ok:
-                messagebox.showerror(title="Server Error", message="There was an error in retrieving the data\nThe data collection service could be down right now")
+                #messagebox.showerror(title="Server Error", message="There was an error in retrieving the data\nThe data collection service could be down right now")
                 return response
             else:
                 self.controller.modify_url(chosen_url)
                 with open("current_data.json", "w") as json_file:
                     data = response.json()
                     json.dump(data, json_file)
-                    message = "{} earthquakes were found".format(data["metadata"]["count"])
-                    messagebox.showinfo(title="Data Retrieved", message=message)
+                    #messagebox.showinfo(title="Data Retrieved", message="{} earthquakes were found".format(data["metadata"]["count"]))
                 return response

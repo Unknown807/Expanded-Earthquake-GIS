@@ -139,7 +139,13 @@ class PointInfoPage(tk.Frame):
         self.wiki_photo_label.image = self.wiki_photo
 
     def wiki_image_url_request(self):
-        response = requests.get("https://en.wikipedia.org/w/api.php?action=query&titles={}&prop=pageimages&format=json&pithumbsize=300".format(self.wiki_image_data))
+        try:
+            response = requests.get("https://en.wikipedia.org/w/api.php?action=query&titles={}&prop=pageimages&format=json&pithumbsize=300".format(self.wiki_image_data))
+        except requests.exceptions.ConnectionError:
+            return False
+        if not response.ok:
+            return False
+
         data = response.json()
         data = data["query"]["pages"]
         key = "".join(data.keys())
@@ -159,7 +165,12 @@ class PointInfoPage(tk.Frame):
         if not image_url:
             return False
         
-        response = requests.get(image_url, stream=True)
+        try:
+            response = requests.get(image_url, stream=True)
+        except requests.exceptions.ConnectionError:
+            return False
+        if not response.ok:
+            return False
         with open("current_image.png", "wb") as out_file:
             shutil.copyfileobj(response.raw, out_file)
         del response
@@ -167,14 +178,19 @@ class PointInfoPage(tk.Frame):
         return True
 
     def wiki_text_url_request(self, data):
-        response = requests.get("https://en.wikipedia.org/w/api.php?action=parse&format=json&section=0&prop=text&page={}".format(data))
-        if response.ok:
-            data = response.json()
-            if "error" in data.keys():
-                return False
-            else:
-                data = data["parse"]["text"]["*"]
-                return data
+        try:
+            response = requests.get("https://en.wikipedia.org/w/api.php?action=parse&format=json&section=0&prop=text&page={}".format(data))
+        except requests.exceptions.ConnectionError:
+            return False
+        if not response.ok:
+            return False
+
+        data = response.json()
+        if "error" in data.keys():
+            return False
+        else:
+            data = data["parse"]["text"]["*"]
+            return data
 
     def get_wiki_text(self):
         search_data = self.place_label.cget("text").split()
@@ -190,6 +206,7 @@ class PointInfoPage(tk.Frame):
             if not response:
                 response = self.wiki_text_url_request(search_data[1])
                 if not response:
+                    self.wiki_image_data = False
                     return False
                 else:
                     self.wiki_image_data = search_data[1]
@@ -204,11 +221,12 @@ class PointInfoPage(tk.Frame):
             data = soup.find("a").getText()
             self.wiki_image_data = data
             response = self.wiki_text_url_request(data)
-        elif "commonly refers to:" in search_data or "may also refer to:" in search_data:
+        elif "commonly refers to:" in data or "may also refer to:" in data:
             data = soup.find_all("a")[1]
             self.wiki_image_data = data
             response = self.wiki_text_url_request(data)
         elif "may refer to:" in data:
+            search_data = search_data if isinstance(search_data, list) else search_data.split()
             self.wiki_image_data = search_data[1]
             response = self.wiki_text_url_request(search_data[1])
         

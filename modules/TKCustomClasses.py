@@ -7,10 +7,10 @@ class MapPoint(Line2D):
     def __init__(self, x, y, magnitude, place, time, felt, cdi, mmi, alert, tsunami, sig, title, status, dmin, gap, magtype, type_):
 
         markersize = math.pow(2, magnitude)/math.pow(2, magnitude//2)
-        if magnitude<=3: color="g"
-        elif 3<magnitude<=6: color="y"
-        else: color="r"
-        super().__init__(xdata=[x,], ydata=[y,],marker="o",markersize=markersize,color=color,alpha=.45,picker=markersize)
+        if magnitude<=3: color="green"
+        elif 3<magnitude<=6: color="orange"
+        else: color="red"
+        super().__init__(xdata=[x,], ydata=[y,],marker="o",markersize=markersize,color=color,alpha=.3,picker=markersize)
 
         self.title = title
         self.place = place

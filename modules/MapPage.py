@@ -40,9 +40,9 @@ class MapPage(tk.Frame):
         self.map_frame = tk.Frame(self)
         self.map_frame.pack(side="bottom", fill="both", expand=True)
 
-        legend_elements = [Line2D([0], [0], marker="o", color="g", label="Small (below 3)"),
-                    Line2D([0], [0], marker="o", color="y", label="Medium (below 6)"),
-                    Line2D([0], [0], marker="o", color="r", label="Large (above 6)")]
+        legend_elements = [Line2D([0], [0], marker="o", color="green", label="Small (below 3)"),
+                    Line2D([0], [0], marker="o", color="orange", label="Medium (below 6)"),
+                    Line2D([0], [0], marker="o", color="red", label="Large (above 6)")]
 
         self.map_figure = plt.figure(num=None, figsize=(12, 4))
         self.map_axes = self.map_figure.add_subplot(111)
@@ -55,6 +55,7 @@ class MapPage(tk.Frame):
         
         self.figure_basemap.drawcoastlines()
         self.figure_basemap.fillcontinents(color="tan", lake_color="lightblue")
+        self.figure_basemap.drawstates(color="darkred")
         self.figure_basemap.drawparallels(np.arange(-90.,91.,30.), labels=(True, True, False, False), dashes=(2,2))
         self.figure_basemap.drawmeridians(np.arange(-180.,181.,60.), labels=(False, False, False, True), dashes=(2,2))
         self.figure_basemap.drawmapboundary(fill_color="lightblue")
@@ -75,15 +76,14 @@ class MapPage(tk.Frame):
         reads it from the json file
         '''
         if self.local_url == self.controller.current_url:
-            return
+            return "Same Request"
 
         self.local_url = self.controller.current_url
         with open("current_data.json", "r") as json_file:
             data = json.load(json_file)
         
         self.plot_points(data)
-        message = "{} points plotted".format(data["metadata"]["count"])
-        messagebox.showinfo(title="Data Plotted", message=message)
+        #messagebox.showinfo(title="Data Plotted", message="{} points plotted".format(data["metadata"]["count"]))
 
     def plot_points(self, filedata):
         '''
@@ -113,9 +113,8 @@ class MapPage(tk.Frame):
         Function when an individual point is picked, prompts the user to view information about it
         '''
         line_obj = event.artist
-        message="Here is more info about the point - {}".format(line_obj.place)
         
-        messagebox.showinfo(title="Point Selected", message=message)
+        #messagebox.showinfo(title="Point Selected", message="Here is more info about the point - {}".format(line_obj.place))
         self.figure_canvas.mpl_disconnect(self.canvas_pick_event)
         self.controller.call_display_info(line_obj)
         self.controller.show_frame("PointInfoPage")

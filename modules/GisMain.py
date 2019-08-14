@@ -77,7 +77,7 @@ class GISMain(tk.Tk):
         if os.path.isfile(filename):
             os.remove(filename)
         self.destroy()
-        sys.exit(0)
+        #sys.exit(0)
 
 if __name__ == "__main__":
     root = GISMain()
