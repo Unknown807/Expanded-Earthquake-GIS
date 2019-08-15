@@ -165,10 +165,10 @@ class SettingsPage(tk.Frame):
             if (startdate and enddate):
                 base_url += f"&starttime={startdate}T{starttime}{timezone}&endtime={enddate}T{endtime}{timezone}"
             else: 
-                #messagebox.showerror(title="Date Error", message="Sorry, the dates entered are incorrect")
+                messagebox.showerror(title="Date Error", message="Sorry, the dates entered are incorrect")
                 return "Bad Date"
         else: 
-            #messagebox.showerror(title="Time Error", message="Sorry, the times entered are inccorect")
+            messagebox.showerror(title="Time Error", message="Sorry, the times entered are inccorect")
             return "Bad Time"
 
         search_type=self.circ_rect_search_menu.getcurselection()
@@ -180,7 +180,7 @@ class SettingsPage(tk.Frame):
             if (minlat and maxlat and minlong and maxlong) and (minlat < maxlat and minlong < maxlong):
                 base_url += f"&minlatitude={minlat}&maxlatitude={maxlat}&minlongitude={minlong}&maxlongitude={maxlong}"
             else: 
-                #messagebox.showerror(title="Rectangle Search Error", message="Please check that you've entered the min/max latitudes\nand longitudes correctly for the rectangle search")
+                messagebox.showerror(title="Rectangle Search Error", message="Please check that you've entered the min/max latitudes\nand longitudes correctly for the rectangle search")
                 return "Bad Rectangle Options"
 
         elif search_type == "Circle":
@@ -190,7 +190,7 @@ class SettingsPage(tk.Frame):
             if (lat and long_ and maxradius):
                 base_url += f"&latitude={lat}&longitude={long_}&maxradius={maxradius}"
             else: 
-                #messagebox.showerror(title="Circle Search Error", message="Please check that you've entered the lat/long/maxradius correctly for the circle search")
+                messagebox.showerror(title="Circle Search Error", message="Please check that you've entered the lat/long/maxradius correctly for the circle search")
                 return "Bad Circle Options"
 
         mindepth = self.mindepth_counter.component("entry").get()
@@ -204,13 +204,13 @@ class SettingsPage(tk.Frame):
                 if (minmag and maxmag) and (minmag < maxmag):
                     base_url += f"&mindepth={mindepth}&maxdepth={maxdepth}&minmagnitude={minmag}&maxmagnitude={maxmag}&limit={limit}"
                 else: 
-                    #messagebox.showerror(title="Magnitude Error", message="Please check that you've entered the min/max magnitude\nfields correctly")
+                    messagebox.showerror(title="Magnitude Error", message="Please check that you've entered the min/max magnitude\nfields correctly")
                     return "Bad Min/Max Magnitudes"
             else: 
-                #messagebox.showerror(title="Depth Error", message="Please check that you've entered the min/max depth fields correctly")
+                messagebox.showerror(title="Depth Error", message="Please check that you've entered the min/max depth fields correctly")
                 return "Bad Min/Max Depths"
         else: 
-            #messagebox.showerror(title="Search Limit Error", message="Please check that the search limit you've entered is valid")
+            messagebox.showerror(title="Search Limit Error", message="Please check that the search limit you've entered is valid")
             return "Bad Limit"
 
         self.request_new_data(base_url)
@@ -228,19 +228,19 @@ class SettingsPage(tk.Frame):
         if self.controller.current_url == chosen_url:
             return
         else:
-            #messagebox.showinfo(title="Loading", message="Fetching data please wait for another notification...")
+            messagebox.showinfo(title="Loading", message="Fetching data please wait for another notification...")
             try:
                 response = requests.get(chosen_url)
             except requests.exceptions.ConnectionError:
-                #messagebox.showerror(title="Connection Error", message="Please check you're internet connection\nas a request could not be made")
+                messagebox.showerror(title="Connection Error", message="Please check you're internet connection\nas a request could not be made")
                 return "Bad Connection"
             if not response.ok:
-                #messagebox.showerror(title="Server Error", message="There was an error in retrieving the data\nThe data collection service could be down right now")
+                messagebox.showerror(title="Server Error", message="There was an error in retrieving the data\nThe data collection service could be down right now")
                 return response
             else:
                 self.controller.modify_url(chosen_url)
                 with open("current_data.json", "w") as json_file:
                     data = response.json()
                     json.dump(data, json_file)
-                    #messagebox.showinfo(title="Data Retrieved", message="{} earthquakes were found".format(data["metadata"]["count"]))
+                    messagebox.showinfo(title="Data Retrieved", message="{} earthquakes were found".format(data["metadata"]["count"]))
                 return response

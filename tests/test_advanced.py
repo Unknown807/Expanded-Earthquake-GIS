@@ -390,7 +390,7 @@ class TestPointInfoPage(unittest.TestCase):
         self.assertFalse(real_call)
 
 class TestMapPage(unittest.TestCase):
-    '''
+    '''s
     This tests the various methods and functionalities of the MapPage class
     and sees that interactions between the map and mappoint objects are 
     working correctly

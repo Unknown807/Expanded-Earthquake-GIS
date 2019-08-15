@@ -83,7 +83,7 @@ class MapPage(tk.Frame):
             data = json.load(json_file)
         
         self.plot_points(data)
-        #messagebox.showinfo(title="Data Plotted", message="{} points plotted".format(data["metadata"]["count"]))
+        messagebox.showinfo(title="Data Plotted", message="{} points plotted".format(data["metadata"]["count"]))
 
     def plot_points(self, filedata):
         '''
@@ -114,7 +114,7 @@ class MapPage(tk.Frame):
         '''
         line_obj = event.artist
         
-        #messagebox.showinfo(title="Point Selected", message="Here is more info about the point - {}".format(line_obj.place))
+        messagebox.showinfo(title="Point Selected", message="Here is more info about the point - {}".format(line_obj.place))
         self.figure_canvas.mpl_disconnect(self.canvas_pick_event)
         self.controller.call_display_info(line_obj)
         self.controller.show_frame("PointInfoPage")
