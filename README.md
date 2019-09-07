@@ -1,4 +1,2 @@
 # Advanced-GIS-System
-A program based off my other repo, Simple Earthquake GIS; it will be similar to it except i will add more options for customisability by the user and i will have additional options around analysing data and presenting it in many understandable ways.
-
-(This is a feature branch)
+This is a slight improvement from my simple earthquake repository, which was originally inspired by the coding train coding challenge #57.
