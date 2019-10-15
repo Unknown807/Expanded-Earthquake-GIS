@@ -97,16 +97,24 @@ class PointInfoPage(tk.Frame):
             (self.mmi_label, "The maximum estimated instrumental intensity for the event"),
             (self.cdi_label, "The maximum reported intensity for the event"),
         )
-        
+        #this helps to reduce redundancy by looping through the tuple and both binding a tooltip and packing it to the screen at the same time
         for widget, helpmsg in balloon_helps:
             self.infopage_balloon.bind(widget, helpmsg)
-            widget.pack(pady=10, anchor="w")
+            widget.pack(padx=10, pady=10, anchor="w")
 
     def on_show_frame(self, page_name):
+        '''
+        If the user switches back to the settings or map page, then the program first reconnects the pick event to 
+        all MapPoint objects on the map.
+        '''
         self.controller.call_reconnect()
         self.controller.show_frame(page_name)
 
     def configure_labels(self, point_obj):
+        '''
+        Method for changing the text of several onscreen labels in order to display more in-depth
+        information about a selected earthquake
+        '''
         self.label_title.config(text=point_obj.title)
 
         self.place_label.config(text="Place: {}".format(point_obj.place))
@@ -125,20 +133,30 @@ class PointInfoPage(tk.Frame):
         self.cdi_label.config(text="CDI: {}".format(point_obj.cdi))
 
     def configure_scrolledtext(self):
+        '''
+        Method for retrieving text information about the place affected by communicating
+        with the wikipedia API, and configuring the textbox with it
+        '''
         text_content = self.get_wiki_text()
         if not text_content:
             text_content = "No Information Found"
         self.wiki_scrolledtext.settext(text_content)
 
     def configure_event_photo(self):
+        '''
+        Method for retrieving a picture of the place affected by communicating with the
+        wikipedia API, and configuring the wiki_photo_label with it
+        '''
         use_default = "current_image.png" if self.get_wiki_image() else "default_image.png"
-        
         image = Image.open(use_default)
         self.wiki_photo = ImageTk.PhotoImage(image)
         self.wiki_photo_label.config(image=self.wiki_photo)
         self.wiki_photo_label.image = self.wiki_photo
 
     def wiki_image_url_request(self):
+        '''
+        Method used for the direct request to the wikipedia API for an image url for later download
+        '''
         try:
             response = requests.get("https://en.wikipedia.org/w/api.php?action=query&titles={}&prop=pageimages&format=json&pithumbsize=300".format(self.wiki_image_data))
         except requests.exceptions.ConnectionError:
@@ -150,20 +168,24 @@ class PointInfoPage(tk.Frame):
         data = data["query"]["pages"]
         key = "".join(data.keys())
 
-        if key == "-1":
+        if key == "-1": #if no image is found for the selected place
             return False
         
-        if data[key].get("thumbnail", None) is None:
+        if data[key].get("thumbnail", None) is None: #if the selected place exists, but no image was found
             return False
         
-        data = data[key]["thumbnail"]["source"]
+        data = data[key]["thumbnail"]["source"] #image url is here
 
         return data
 
     def get_wiki_image(self):
+        '''
+        Method used to download the image of the affected place onto the disk, with
+        the image's download url
+        '''
         image_url = self.wiki_image_url_request()
         if not image_url:
-            return False
+            return False #if no image was found then there is no point in continuing
         
         try:
             response = requests.get(image_url, stream=True)
@@ -172,12 +194,15 @@ class PointInfoPage(tk.Frame):
         if not response.ok:
             return False
         with open("current_image.png", "wb") as out_file:
-            shutil.copyfileobj(response.raw, out_file)
+            shutil.copyfileobj(response.raw, out_file) #statement for writing the image's raw data to disk as a png image file
         del response
 
         return True
 
     def wiki_text_url_request(self, data):
+        '''
+        Method used for the direct request to the wikipedia API for text information regarding the affected place
+        '''
         try:
             response = requests.get("https://en.wikipedia.org/w/api.php?action=parse&format=json&section=0&prop=text&page={}".format(data))
         except requests.exceptions.ConnectionError:
@@ -187,12 +212,26 @@ class PointInfoPage(tk.Frame):
 
         data = response.json()
         if "error" in data.keys():
-            return False
+            return False #if the article does not exist, or there is no information regarding the place
         else:
-            data = data["parse"]["text"]["*"]
+            data = data["parse"]["text"]["*"] #the retrieved here
             return data
 
     def get_wiki_text(self):
+        '''
+        By using the place name, this method creates and formats the url most likely to get
+        an accurate match with the wikipedia place.
+        ---------------------------------------------
+        A total of 3-4 requests may be made, with varying request arguments.
+        
+        example_text = "Salamanca, Chile"
+        
+        first one request is made with the argument of "Salamanca, Chile"
+        if that fails then a second request is made with the argument of "Salamanca"
+        if the result is still not acceptable then a final third request is made with
+        the argument of "Chile", just to be able to get the general information about
+        the country instead
+        '''
         search_data = self.place_label.cget("text").split()
         if not search_data[1][0].isdigit():
             self.wiki_image_data = False
@@ -216,25 +255,25 @@ class PointInfoPage(tk.Frame):
             self.wiki_image_data = search_data
 
         soup = BS4(response, features="lxml")
-        data = soup.find("p").getText()
-        if "Redirect to:" in data:
-            data = soup.find("a").getText()
+        data = soup.find("p").getText() #retrieves text and parses out all of the unecessary html tags
+        if "Redirect to:" in data: #instead of the text, if theres a redirect link, then it is followed to find the right text
+            data = soup.find("a").getText() #finds all <a> tags in the text
+            self.wiki_image_data = data
+            response = self.wiki_text_url_request(data) # uses the link found in the first <a> tag for redirect, its almost always the first link
+        elif "commonly refers to:" in data or "may also refer to:" in data: #different format of redirect, gets the first item from the list of links
+            data = soup.find_all("a")[1] #in this case its the second <a> tag link
             self.wiki_image_data = data
             response = self.wiki_text_url_request(data)
-        elif "commonly refers to:" in data or "may also refer to:" in data:
-            data = soup.find_all("a")[1]
-            self.wiki_image_data = data
-            response = self.wiki_text_url_request(data)
-        elif "may refer to:" in data:
-            search_data = search_data if isinstance(search_data, list) else search_data.split()
+        elif "may refer to:" in data: #different format of redirect
+            search_data = search_data if isinstance(search_data, list) else search_data.split() #sometimes if the first request was successful, then the place name wouldn't have been split into a list, so its easier to just expect a list instead
             self.wiki_image_data = search_data[1]
             response = self.wiki_text_url_request(search_data[1])
         
         soup = BS4(response, features="lxml")
         all_text=""
-        for string in soup.find_all("p"):
+        for string in soup.find_all("p"): #finds all <p> tags and appends them onto all_text with no newline characters (to avoid text formatting issues)
             if "\n" not in string:
-                all_text+=string.get_text()
-        all_text = "".join(re.split("\[\d+\]", all_text))
+                all_text+=string.get_text() 
+        all_text = "".join(re.split("\[\d+\]", all_text)) #sometimes wikipedia articles could have appendix links, e.g [3], which need to be removed
 
-        return all_text
+        return all_text #the text is returned for use in configuring the textbox

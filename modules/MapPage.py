@@ -15,13 +15,12 @@ from TKCustomClasses import MapPoint
 
 class MapPage(tk.Frame):
     '''
-    A page that will show the map of currently plotted earthquakes
+    A page that will show the map of currently plotted earthquakes from the 'current_data.json' file
     '''
     def __init__(self, parent, controller):
         super().__init__(parent)
         self.controller = controller
         self.local_url = None
-        self.current_line_objs = []
         self.mappage_balloon = Pmw.Balloon(self)
 
         self.bind("<<RefreshPlot>>", self.refresh_plot)
@@ -40,18 +39,19 @@ class MapPage(tk.Frame):
         self.map_frame = tk.Frame(self)
         self.map_frame.pack(side="bottom", fill="both", expand=True)
 
+        #Line2D objects are used here to be placed in the legend of the graph for more detail on the map
         legend_elements = [Line2D([0], [0], marker="o", color="green", label="Small (below 3)"),
-                    Line2D([0], [0], marker="o", color="orange", label="Medium (below 6)"),
+                    Line2D([0], [0], marker="o", color="yellow", label="Medium (below 6)"),
                     Line2D([0], [0], marker="o", color="red", label="Large (above 6)")]
 
         self.map_figure = plt.figure(num=None, figsize=(12, 4))
         self.map_axes = self.map_figure.add_subplot(111)
-        self.map_axes_legend = self.map_axes.legend(handles=legend_elements, loc="upper right")
+        self.map_axes_legend = self.map_axes.legend(handles=legend_elements, loc="upper right") #placing the legend
         self.map_axes.set_title("Earthquake Events - Mercator Projection")
-        self.map_figure.tight_layout()
+        self.map_figure.tight_layout() #makes sure that when placing the map onto the GUI, it is responsive
 
         self.figure_basemap = Basemap(projection="merc", llcrnrlat=-80, urcrnrlat=80,
-            llcrnrlon=-180, urcrnrlon=180, resolution="c")
+            llcrnrlon=-180, urcrnrlon=180, resolution="c") #defines that the map is using mercator projection
         
         self.figure_basemap.drawcoastlines()
         self.figure_basemap.fillcontinents(color="tan", lake_color="lightblue")
@@ -61,19 +61,19 @@ class MapPage(tk.Frame):
         self.figure_basemap.drawmapboundary(fill_color="lightblue")
         self.figure_basemap.drawcountries()
 
-        self.figure_canvas = FigureCanvasTkAgg(self.map_figure, self.map_frame)
+        self.figure_canvas = FigureCanvasTkAgg(self.map_figure, self.map_frame) #creates the figure and draws the map onto it
         self.figure_canvas.draw()
         self.figure_canvas.get_tk_widget().pack(side="bottom", fill="both", expand=True)
         self.canvas_pick_event = self.figure_canvas.mpl_connect("pick_event", self.display_point_info)
         
-        self.figure_toolbar = NavigationToolbar2Tk(self.figure_canvas, self.map_frame)
+        self.figure_toolbar = NavigationToolbar2Tk(self.figure_canvas, self.map_frame) #Toolbar with additional options is added to the figure
         self.figure_toolbar.update()
         self.figure_canvas._tkcanvas.pack(side="top", fill="both", expand=True)
     
     def refresh_plot(self, event):
         '''
-        Function for checking whether there is any different data to plot and if so
-        reads it from the json file
+        Method for checking whether there is any different data to plot and if so
+        reads it from the json file, done by checking the local_url against controller's current_url
         '''
         if self.local_url == self.controller.current_url:
             return "Same Request"
@@ -87,10 +87,11 @@ class MapPage(tk.Frame):
 
     def plot_points(self, filedata):
         '''
-        Function for creating MapPoint objects and plotting them on the figure
+        Method for creating MapPoint objects and plotting them on the figure, by first clearing the figure of any
+        previous plots and then reading 'current_data.json'
         '''
         self.map_axes.lines.clear()
-        self.current_line_objs.clear()
+        
         for quake in filedata["features"]:
             lat=quake["geometry"]["coordinates"][1]
             if lat > 80: lat=80
@@ -104,13 +105,12 @@ class MapPage(tk.Frame):
                 quake["properties"]["dmin"], quake["properties"]["gap"], quake["properties"]["magType"],
                 quake["properties"]["type"])
             
-            self.current_line_objs+=[new_point]
             self.map_axes.add_line(new_point)
         self.figure_canvas.draw()
     
     def display_point_info(self, event):
         '''
-        Function when an individual point is picked, prompts the user to view information about it
+        Method when an individual point is picked, prompts the user to view information about it
         '''
         line_obj = event.artist
         
@@ -121,6 +121,6 @@ class MapPage(tk.Frame):
 
     def reconnect_pick_event(self):
         '''
-        Function to reconnect pick event with the figure after a previous disconnect
+        Method to reconnect pick event with the figure after a previous disconnect
         '''
         self.canvas_pick_event = self.figure_canvas.mpl_connect("pick_event", self.display_point_info)

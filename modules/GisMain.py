@@ -26,6 +26,8 @@ class GISMain(tk.Tk):
         self.frames = {}
         self.current_url = None
         
+        #loop for storing all page classes in a dictionary where their name corresponds to the instance
+        #thereby allowing them to be shown to the user via the show_frame method
         for frame in (SettingsPage, MapPage, PointInfoPage):
             page_name = frame.__name__
             new_frame = frame(parent=self.container, controller=self)
@@ -35,7 +37,7 @@ class GISMain(tk.Tk):
 
     def show_frame(self, page_name):
         '''
-        Function for lifting frames over one another
+        Method for lifting frames over one another
         '''
         frame = self.frames[page_name]
         frame.event_generate("<<RefreshPlot>>")
@@ -43,20 +45,20 @@ class GISMain(tk.Tk):
     
     def modify_url(self, new_url):
         '''
-        Function for modfiying the url to check whether new data needs plotting
+        Method for modfiying the url to check whether new data needs plotting
         '''
         self.current_url = new_url
     
     def call_reconnect(self):
         '''
-        Function that calls the map page's reconnect function to enable event handling again
+        Method that calls the map page's reconnect function to enable event handling again
         '''
         page = self.frames["MapPage"]
         page.reconnect_pick_event()
     
     def call_display_info(self, point_obj):
         '''
-        Function that calls the point info page's configure labels function to configure labels
+        Method that calls the point info page's configure labels function to configure labels
         to show the appropriate information about the selected point
         '''
         page = self.frames["PointInfoPage"]
@@ -66,7 +68,7 @@ class GISMain(tk.Tk):
     
     def on_close_window(self):
         '''
-        Function that makes sure the current_data.json file is deleted as after the
+        Method that makes sure the current_data.json file is deleted as after the
         program is closed its no longer needed
         '''
         filename="current_data.json"

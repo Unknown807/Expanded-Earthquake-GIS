@@ -13,7 +13,6 @@ import GisMain
 import unittest
 import unittest.mock as mock
 
-
 class MockPointObj:
     def __init__(self, *args, **kwargs):
         self.place = "12km NNE of Thousand Palms, CA" if not kwargs.get("place", False) else kwargs["place"]
@@ -432,10 +431,10 @@ class TestMapPage(unittest.TestCase):
             {"type":"Feature","properties":{"mag":1.5800000000000001,"place":"16km SSW of Searles Valley, CA","time":1565615959780,"updated":1565616624630,"tz":-480,"url":"https://earthquake.usgs.gov/earthquakes/eventpage/ci38959280","detail":"https://earthquake.usgs.gov/fdsnws/event/1/query?eventid=ci38959280&format=geojson","felt":None,"cdi":None,"mmi":None,"alert":None,"status":"automatic","tsunami":0,"sig":38,"net":"ci","code":"38959280","ids":",ci38959280,","sources":",ci,","types":",focal-mechanism,geoserve,nearby-cities,origin,phase-data,scitech-link,","nst":24,"dmin":0.039570000000000001,"rms":0.20999999999999999,"gap":55,"magType":"ml","type":"earthquake","title":"M 1.6 - 16km SSW of Searles Valley, CA"},"geometry":{"type":"Point","coordinates":[-117.47033329999999,35.634833299999997,2.4700000000000002]},"id":"ci38959280"},
             {"type":"Feature","properties":{"mag":0.56999999999999995,"place":"22km ESE of Little Lake, CA","time":1565615877760,"updated":1565616104491,"tz":-480,"url":"https://earthquake.usgs.gov/earthquakes/eventpage/ci38959272","detail":"https://earthquake.usgs.gov/fdsnws/event/1/query?eventid=ci38959272&format=geojson","felt":None,"cdi":None,"mmi":None,"alert":None,"status":"automatic","tsunami":0,"sig":5,"net":"ci","code":"38959272","ids":",ci38959272,","sources":",ci,","types":",geoserve,nearby-cities,origin,phase-data,scitech-link,","nst":13,"dmin":0.080879999999999994,"rms":0.089999999999999997,"gap":86,"magType":"ml","type":"earthquake","title":"M 0.6 - 22km ESE of Little Lake, CA"},"geometry":{"type":"Point","coordinates":[-117.6773333,35.864166699999998,7.29]},"id":"ci38959272"}],"bbox":[-122.8281631,33.833,2.03,-117.0063333,38.8103333,23.3]}
         #checks whether all new points have been successfully plotted
-        self.map_page.current_line_objs.clear()
-        current_length = len(self.map_page.current_line_objs)
         real_call = self.map_page.plot_points(json_data)
-        self.assertEqual(current_length+5, len(self.map_page.current_line_objs), "A list of length 0 should be equal to 5 after 5 new points were plotted")
+        self.assertTrue(self.map_page.map_figure.get_axes())
+        self.assertTrue(self.map_page.map_axes.lines)
+        self.assertEqual(len(self.map_page.map_axes.lines), 5)
 
 class TestSettingsPage(unittest.TestCase):
     '''

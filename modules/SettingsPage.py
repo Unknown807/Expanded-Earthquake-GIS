@@ -7,6 +7,7 @@ import re
 import Pmw
 import requests
 
+#dictionary of many common timezones, some have been urlencoded to avoid errors with the GeoJson API
 TIMEZONES = {"UTC":"%2B00:00", "ECT":"%2B01:00", "EET":"%2B02:00", "ART": "%2B02:00",
     "EAT": "%2B03:00", "MET": "%2B03:30", "NET":"%2B04:00", "PLT":"%2B05:00",
     "IST":"%2B05:30", "BST": "%2B06:00", "VST":"%2B07:00", "CTT": "%2B08:00",
@@ -17,6 +18,9 @@ TIMEZONES = {"UTC":"%2B00:00", "ECT":"%2B01:00", "EET":"%2B02:00", "ART": "%2B02
     "CAT": "-01:00"}
 
 def create_counter(parent, label_text, current_value, min_, max_, increment):
+    '''
+    function for creating Pmw.Counter objects short hand
+    '''
     return Pmw.Counter(parent, labelpos="w", label_text=label_text,
         label_justify="left", entryfield_value=current_value, datatype={"counter":"real", "separator":"."},
         entryfield_validate = {"validator":"real", "min":min_, "max":max_, "separator":"."}, increment=increment)
@@ -61,7 +65,6 @@ class SettingsPage(tk.Frame):
         self.coordframe_right_container = tk.Frame(self.coord_labelframe)
         self.searchtype_labelframe = tk.LabelFrame(self.coordframe_right_container, text="Search Type")
         
-        
         self.coordframe_left = tk.LabelFrame(self.coord_labelframe, text="Rectangle Search")
         self.coordframe_right = tk.LabelFrame(self.coordframe_right_container, text="Circle Search")
         self.coordframe_left.pack(side="left", fill="both", expand=True, padx=3, pady=3)
@@ -76,6 +79,7 @@ class SettingsPage(tk.Frame):
         self.coord_labelframe.pack(side="left", fill="both", expand=True, padx=5, pady=5)
         self.extra_labelframe.pack(side="left", fill="both", expand=True, padx=5, pady=5)
 
+        #used to get and format the current date and time for the Pmw.Counter class
         now = (float(time.time())/300)*300
         default_date = time.strftime("%Y-%m-%d", time.localtime(now))
         default_time = time.strftime("%H:%M:%S", time.localtime(now))
@@ -143,7 +147,7 @@ class SettingsPage(tk.Frame):
             (self.limit_counter, "Specify the amount of results returned from your query\nBetween 1 and 20000. Depending on the limit specified,\nreading data from the server may take quite long"),
             (self.url_time_menu, "If you choose other url options in 'refresh', then this filters by what time interval to get earthquake data"),
         )
-
+        #this helps to reduce redundancy by looping through the tuple and both binding a tooltip and packing it to the screen at the same time
         for widget, helpmsg in balloon_helps:
             self.setpage_balloon.bind(widget, helpmsg)
             widget.component("label").configure(font=self.field_font)
@@ -151,7 +155,10 @@ class SettingsPage(tk.Frame):
 
     def validate_data(self):
         '''
-        Function for validating all the data from the fields in the SettingsPage
+        Method for validating all the data from the fields in the SettingsPage
+        
+        e.g (starttime and endtime) checks that both fields are not blank, then the program uses
+        f strings to pass the values into a url format (the GeoJson request url)
         '''
         base_url = "https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson"
 
@@ -216,14 +223,18 @@ class SettingsPage(tk.Frame):
         self.request_new_data(base_url)
     
     def format_default_url(self, url):
+        '''
+        If any toolbar button other than 'use current parameters' is pressed, then the program will simply use
+        one of the default requests to get all earthquakes of a certain magnitude (2.5+, 4.5+, etc)
+        '''
         time_value = self.url_time_menu.getcurselection()
         self.request_new_data(url.format(time_value.lower()))
 
     def request_new_data(self, chosen_url):
         '''
-        This Function will take in a url that calls the GeoJson API and will retrive the JSON data from
-        that url and store it in a file, or if the url is the same as the previous one, it will use the
-        same file
+        This method uses the requests module to request the earthquake data using the chosen_url arguement.
+        If the url is the same as the previos request's url, then the previous data is still on the disk and the
+        program uses that instead of starting a new request (simple memoization).
         '''
         if self.controller.current_url == chosen_url:
             return

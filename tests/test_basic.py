@@ -4,7 +4,6 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../modules")))
 
 from GisMain import GISMain
-
 import unittest
 import unittest.mock as mock
 
@@ -52,8 +51,12 @@ class TestSettingsPageMethodCalls(unittest.TestCase):
     def test_refresh_earthquake_data(self):
         with mock.patch("SettingsPage.SettingsPage") as MockClass:
             instance = MockClass()
+
             instance.request_new_data()
             instance.request_new_data.assert_called()
+
+            instance.validate_data()
+            instance.validate_data.assert_called()
 
 class TestMapPageMethodCalls(unittest.TestCase):
     '''
