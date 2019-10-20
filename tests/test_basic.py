@@ -35,6 +35,10 @@ class TestMainMethodCalls(unittest.TestCase):
             mocked.assert_called()
     
     def test_on_close_window(self):
+        '''
+        checks if both the 'current_data.json' and 'current_image.png' file are deleted after the window
+        is closed (through the 'WM_DELETE_WINDOW' protocol)
+        '''
         open("current_data.json", "wb").close()
         open("current_image.png", "wb").close()
             

@@ -14,6 +14,11 @@ import unittest
 import unittest.mock as mock
 
 class MockPointObj:
+    '''
+    This class is used to imitate a MapPoint object, it has default values for lack of any, but any
+    property of the earthquake event can be changed. This class is used for the configure_labels method
+    of the PointInfoPage class
+    '''
     def __init__(self, *args, **kwargs):
         self.place = "12km NNE of Thousand Palms, CA" if not kwargs.get("place", False) else kwargs["place"]
         self.time = "2019-08-12T15:18:03.430000" if not kwargs.get("time", False) else kwargs["time"]
@@ -33,7 +38,7 @@ class MockPointObj:
 
 class MockResponse:
     '''
-    Imitates a response from the GeoJson API + Wiki API for valid and invalid requests/responses
+    Imitates a response from the Earthquake Catalog API + Wiki API for valid and invalid requests/responses
     '''
     def __init__(self, json_data, status_code, ok):
         self.json_data = json_data
@@ -45,16 +50,22 @@ class MockResponse:
 
 class MockTextNode:
     '''
-    Imitates BS4 text nodes from parsed data
+    Imitates BS4 text nodes from parsed data, works for <a> and <p> html tags only
     '''
     def __init__(self, data, index):
         self.data = data
         self.index = index
 
     def getText(self):
+        '''
+        the actual getText function returns a list of html tags
+        '''
         return self.data[self.index]
 
     def get_text(self):
+        '''
+        the actual get_text function returns all the non-html substrings in a string
+        '''
         return self.data
 
     def __contains__(self, item):
@@ -63,12 +74,16 @@ class MockTextNode:
 
 class MockBS4:
     '''
-    Imitates the BeautifulSoup class for the various functions useds
+    Imitates the BeautifulSoup class for the various functions used. it mocks the html
+    parsing process
     '''
     def __init__(self, data, **kwargs):
         self.data = data
     
     def find(self, item):
+        '''
+        method for creating a text node for the right html tag
+        '''
         if item == "p":
             return MockTextNode(self.data, 0)
         elif item == "a":
@@ -83,15 +98,18 @@ def mocked_wiki_text_url_request(*args, **kwargs):
     '''
     the side_effect function for patching the PointInfoPage.wiki_text_url_request method
     used by the PointInfoPage class
+
+    This function is quite self-explanatory as it imitates the process for a successful api response
+    after 1 request, 2 requests, 3 requests or no valid response (input for requests varying)
     '''
 
-    if args[0] == "Hongtu, China":
+    if args[0] == "Hongtu, China": #2 good responses, after one redirect
         return ["Redirect to:", "Redirect to Hongtu, China"]
     elif args[0] == "Redirect to Hongtu, China":
         return (MockTextNode("P1 about Hongtu, China", None), 
             MockTextNode("P2 about Hongtu, China", None))
     
-    elif args[0] == "Salamanca, Chile":
+    elif args[0] == "Salamanca, Chile": #1 bad response, 2 good responses, with a different type of redirect 
         return False
     elif args[0] == "Salamanca":
         return ["commonly refers to:", "Redirect to Salamanca"]
@@ -99,7 +117,7 @@ def mocked_wiki_text_url_request(*args, **kwargs):
         return (MockTextNode("P1 about Salamanca", None), 
             MockTextNode("P2 about salamanca", None))
 
-    elif args[0] == "Ridgecrest, CA":
+    elif args[0] == "Ridgecrest, CA": #2 bad responses, 2 good responses, with a different type of redirect
         return False
     elif args[0] == "Ridgecrest":
         return False
@@ -110,11 +128,11 @@ def mocked_wiki_text_url_request(*args, **kwargs):
         return (MockTextNode("P1 about California", None),
             MockTextNode("P2 about California", None))
 
-    elif args[0] == "Esso, Russia":
+    elif args[0] == "Esso, Russia": #1 good response no redirects
         return (MockTextNode("P1 about Esso, Russia", None),
             MockTextNode("P2 about Esso, Russia", None))
     
-    elif args[0] == "London, England":
+    elif args[0] == "London, England": #3 bad responses, no successful response
         return False
     elif args[0] == "London":
         return False
@@ -126,7 +144,8 @@ def mocked_get_wiki_text(*args, **kwargs):
     global WIKI_TEXT_COUNT
     '''
     the side_effect function for patching the PointInfoPage.get_wiki_text method used in the
-    PointInfoPage module, used by the PointInfoPage class
+    PointInfoPage module, used by the PointInfoPage class. The function normally returns
+    either false or a string.
     '''
     
     if WIKI_TEXT_COUNT:
@@ -140,11 +159,15 @@ def mocked_get_image_url(*args, **kwargs):
     global WIKI_IMG_COUNT
     '''
     the side_effect function for patching the PointInfoPage.wiki_image_url_request method used
-    in the PointInfoPage module, used by the PointInfoPage class
+    in the PointInfoPage module, used by the PointInfoPage class. The function normally returns
+    either false or an image url string
+
+    Note - where this function is used as a side_effect, multiple other functions have also been patched and almost work
+    together to test different scenarios, the WIKI_IMG_COUNT variable is just used for incrementing onto the next test
     '''
     
-    if WIKI_IMG_COUNT == 0:
-        WIKI_IMG_COUNT += 1
+    if WIKI_IMG_COUNT == 0: #no image url found
+        WIKI_IMG_COUNT += 1 
         return False
     elif WIKI_IMG_COUNT == 1:
         WIKI_IMG_COUNT += 1
@@ -158,15 +181,15 @@ def mocked_get_image_url(*args, **kwargs):
 def mocked_wiki_request_get_2(*args, **kwargs):
     '''
     the side_effect function for patching the requests.get method used in the PointInfoPage module
-    used by the PointInfoPoint class
+    used by the PointInfoPoint class.
     '''
     
     if args[0] == "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9a/Flag_of_Tonga.svg/300px-Flag_of_Tonga.svg.png":
-        return mock.MagicMock(raw=bytes("filler", encoding="utf-8"))
+        return mock.MagicMock(raw=bytes("filler", encoding="utf-8")) #valid image data is returned
     elif args[0] == "https://upload.wikimedia.org/wikipedia/commons/thumb/b/ba/Flag_of_Fiji.svg/300px-Flag_of_Fiji.svg.png":
-        return MockResponse(None, 400, False)
+        return MockResponse(None, 400, False) #no image data returned with successful request
     elif args[0] == "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Flag_of_Thailand.svg/300px-Flag_of_Thailand.svg.png":
-        raise PointInfoPage.requests.exceptions.ConnectionError
+        raise PointInfoPage.requests.exceptions.ConnectionError #connectivity issue with successful request
 
 def mocked_request_get(*args, **kwargs):
     '''
@@ -174,21 +197,29 @@ def mocked_request_get(*args, **kwargs):
     used by the SettingsPage class
     '''
     
+    #successful request and response with GeoJson formatted data
     if args[0] == "https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=2019-05-05T15:55:03%2B00:00&endtime=2019-05-06T15:55:03%2B00:00&minlatitude=-90&maxlatitude=90&minlongitude=-180&maxlongitude=180&mindepth=-100&maxdepth=1000&minmagnitude=1&maxmagnitude=2&limit=1":
         return MockResponse({"type":"FeatureCollection","metadata":{"generated":1557156255000,"url":"https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=2019-05-05T15:55:03%2B00:00&endtime=2019-05-06T15:55:03%2B00:00&minlatitude=-90&maxlatitude=90&minlongitude=-180&maxlongitude=180&mindepth=-100&maxdepth=1000&minmagnitude=1&maxmagnitude=2&limit=1","title":"USGS Earthquakes","status":200,"api":"1.8.1","limit":1,"offset":1,"count":1},"features":[{"type":"Feature","properties":{"mag":1.7,"place":"75km S of Kobuk, Alaska","time":1557153499064,"updated":1557153801598,"tz":-540,"url":"https://earthquake.usgs.gov/earthquakes/eventpage/ak0195sm9zcz","detail":"https://earthquake.usgs.gov/fdsnws/event/1/query?eventid=ak0195sm9zcz&format=geojson","felt":None,"cdi":None,"mmi":None,"alert":None,"status":"automatic","tsunami":0,"sig":44,"net":"ak","code":"0195sm9zcz","ids":",ak0195sm9zcz,","sources":",ak,","types":",geoserve,origin,","nst":None,"dmin":None,"rms":0.95,"gap":None,"magType":"ml","type":"earthquake","title":"M 1.7 - 75km S of Kobuk, Alaska"},"geometry":{"type":"Point","coordinates":[-157.2,66.2404,0.1]},"id":"ak0195sm9zcz"}]}, 200, True)
     elif args[0] == "https://earthquake.usgs.gov/fdsnws/event/1/count?format=geojson":
-        return MockResponse(None, 400, False)
+        return MockResponse(None, 400, False) #invalid response, possibly server-side error
     elif args[0] == "https://earthquake.usgs.gov/fdsnws/event/1/count?format=geojson&limit=100":
-        raise SettingsPage.requests.exceptions.ConnectionError
+        raise SettingsPage.requests.exceptions.ConnectionError #connectivity issue, only client-side
 
-    return MockResponse(None, 400, False)
+    return MockResponse(None, 400, False) #unsuccessful request, unsuccessful response
 
 def mocked_wiki_request_get(*args, **kwargs):
     '''
     the side_effect function for patching the requests.get method used in the PointInfoPage module
-    used by the PointInfoPage class
+    used by the PointInfoPage class. the image url will be returned inside a json structure.
     '''
     
+    #in order:
+    #successful response with image url
+    #successful response with missing article
+    #successful response with missing image url
+    #unsuccessful response
+    #connectivity issue
+
     if args[0] == "https://en.wikipedia.org/w/api.php?action=query&titles=Thailand&prop=pageimages&format=json&pithumbsize=300":
         return MockResponse({"batchcomplete":"","query":{"pages":{"30128":{"pageid":30128,"ns":0,"title":"Thailand","thumbnail":{"source":"https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Flag_of_Thailand.svg/300px-Flag_of_Thailand.svg.png","width":300,"height":200},"pageimage":"Flag_of_Thailand.svg"}}}}, 200, True)
     elif args[0] == "https://en.wikipedia.org/w/api.php?action=query&titles=asdfasgas&prop=pageimages&format=json&pithumbsize=300":
@@ -203,8 +234,15 @@ def mocked_wiki_request_get(*args, **kwargs):
 def mocked_wiki_request_get_3(*args, **kwargs):
     '''
     the side_effect function for patching the requests.get method used in the PointInfoPage module
-    used by the PointInfoPage class
+    used by the PointInfoPage class. sends a request for text information to the wikipedia API, the returned
+    text will need to be parsed to get rid of the unecessary html tags and appendices figure (e.g '[23]')
     '''
+    
+    #in order:
+    #successful response with text
+    #unsuccessful response default text
+    #successful response but invalid article
+    #connectivity issue
     
     if args[0] == "https://en.wikipedia.org/w/api.php?action=parse&format=json&section=0&prop=text&page=Nothing":
         return MockResponse({"parse":{"title":"Nothing","pageid":72197,"text":{"*":"<div class=\"mw-parser-output\"><p class=\"mw-empty-elt\">\n</p>\n<div role=\"note\" class=\"hatnote navigation-not-searchable\">For other uses, see <a href=\"/wiki/Nothing_(disambiguation)\" class=\"mw-disambig\" title=\"Nothing (disambiguation)\">Nothing (disambiguation)</a>.</div><p>\n\"<b>Nothing</b>\", used as a pronoun subject, denotes the absence of a <a href=\"/wiki/Something_(concept)\" title=\"Something (concept)\">something</a> or particular thing that one might expect or desire to be present (\"We found nothing,\" \"Nothing was there\") or the inactivity of a thing or things that are usually or could be active (\"Nothing moved,\" \"Nothing happened\").  As a predicate or complement \"nothing\" denotes the absence of meaning, value, worth, relevance, standing, or <a href=\"/wiki/Importance\" title=\"Importance\">significance</a> (\"It is a tale/ Told by an idiot, full of sound and fury,/ Signifying nothing\"; \"The affair meant nothing\"; \"I'm nothing in their eyes\").<sup id=\"cite_ref-MWD_1-0\" class=\"reference\"><a href=\"#cite_note-MWD-1\">&#91;1&#93;</a></sup>  \"<b>Nothingness</b>\" is a philosophical term that denotes the general state of <a href=\"/wiki/Nonexistence\" class=\"mw-redirect\" title=\"Nonexistence\">nonexistence</a>, sometimes reified as a domain or dimension into which things pass when they cease to exist or out of which they may come to exist, e.g., God is understood to have created the universe <i>ex nihilo</i>, \"out of nothing.\"<sup id=\"cite_ref-MWD_1-1\" class=\"reference\"><a href=\"#cite_note-MWD-1\">&#91;1&#93;</a></sup><sup id=\"cite_ref-2\" class=\"reference\"><a href=\"#cite_note-2\">&#91;2&#93;</a></sup></p><div class=\"mw-references-wrap\"><ol class=\"references\">\n<li id=\"cite_note-MWD-1\"><span class=\"mw-cite-backlink\">^ <a href=\"#cite_ref-MWD_1-0\"><sup><i><b>a</b></i></sup></a> <a href=\"#cite_ref-MWD_1-1\"><sup><i><b>b</b></i></sup></a></span> <span class=\"reference-text\"><a rel=\"nofollow\" class=\"external text\" href=\"http://www.merriam-webster.com/dictionary/nothing\">\"Nothing\"</a>, <i>Merriam-Webster Dictionary</i></span>\n</li>\n<li id=\"cite_note-2\"><span class=\"mw-cite-backlink\"><b><a href=\"#cite_ref-2\">^</a></b></span> <span class=\"reference-text\">definition of suffix \"-ness\" - <i>\"the state of being\"</i>, Yourdictionary.com, [www.yourdictionary.com/ness-suffix]</span>\n</li>\n</ol></div>\n<!-- \nNewPP limit report\nParsed by mw1345\nCached time: 20190812194235\nCache expiry: 2592000\nDynamic content: false\nComplications: []\nCPU time usage: 0.076 seconds\nReal time usage: 0.101 seconds\nPreprocessor visited node count: 39/1000000\nPreprocessor generated node count: 0/1500000\nPost\u2010expand include size: 510/2097152 bytes\nTemplate argument size: 0/2097152 bytes\nHighest expansion depth: 3/40\nExpensive parser function count: 2/500\nUnstrip recursion depth: 0/20\nUnstrip post\u2010expand size: 269/5000000 bytes\nNumber of Wikibase entities loaded: 0/400\nLua time usage: 0.041/10.000 seconds\nLua memory usage: 806 KB/50 MB\n-->\n<!--\nTransclusion expansion time report (%,ms,calls,template)\n100.00%   87.980      1 -total\n 84.90%   74.694      1 Template:Pp-vandalism\n 14.79%   13.013      1 Template:Other_uses\n-->\n</div>"}}}, 200, True)
@@ -389,7 +427,7 @@ class TestPointInfoPage(unittest.TestCase):
         self.assertFalse(real_call)
 
 class TestMapPage(unittest.TestCase):
-    '''s
+    '''
     This tests the various methods and functionalities of the MapPage class
     and sees that interactions between the map and mappoint objects are 
     working correctly
@@ -439,7 +477,7 @@ class TestMapPage(unittest.TestCase):
 class TestSettingsPage(unittest.TestCase):
     '''
     This tests the various methods and functionalities of the SettingsPage class 
-    and sees whether the data validation is correct as well as test calls to the external GeoJson API
+    and sees whether the data validation is correct as well as test calls to the external Earthquake Catalog API
     and the possible responses
     '''
     
@@ -546,6 +584,5 @@ class TestSettingsPage(unittest.TestCase):
         real_call = self.settings_page.validate_data()
         self.assertEqual(real_call, "Bad Limit", "Should be a return of 'Bad Limit'")
         
-
 if __name__ == "__main__":
     unittest.main(exit=False)
