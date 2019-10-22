@@ -184,7 +184,7 @@ class SettingsPage(tk.Frame):
             maxlat = self.maxlat_counter.component("entry").get()
             minlong = self.minlong_counter.component("entry").get()
             maxlong = self.maxlong_counter.component("entry").get()
-            if (minlat and maxlat and minlong and maxlong) and (minlat < maxlat and minlong < maxlong):
+            if (minlat and maxlat and minlong and maxlong) and (float(minlat) < float(maxlat) and float(minlong) < float(maxlong)):
                 base_url += f"&minlatitude={minlat}&maxlatitude={maxlat}&minlongitude={minlong}&maxlongitude={maxlong}"
             else: 
                 messagebox.showerror(title="Rectangle Search Error", message="Please check that you've entered the min/max latitudes\nand longitudes correctly for the rectangle search")
@@ -207,8 +207,8 @@ class SettingsPage(tk.Frame):
         limit = self.limit_counter.component("entry").get()
 
         if limit:
-            if (mindepth and maxdepth) and (mindepth < maxdepth):
-                if (minmag and maxmag) and (minmag < maxmag):
+            if (mindepth and maxdepth) and (float(mindepth) < float(maxdepth)):
+                if (minmag and maxmag) and (float(minmag) < float(maxmag)):
                     base_url += f"&mindepth={mindepth}&maxdepth={maxdepth}&minmagnitude={minmag}&maxmagnitude={maxmag}&limit={limit}"
                 else: 
                     messagebox.showerror(title="Magnitude Error", message="Please check that you've entered the min/max magnitude\nfields correctly")
@@ -220,6 +220,7 @@ class SettingsPage(tk.Frame):
             messagebox.showerror(title="Search Limit Error", message="Please check that the search limit you've entered is valid")
             return "Bad Limit"
 
+        print(base_url)
         self.request_new_data(base_url)
     
     def format_default_url(self, url):
