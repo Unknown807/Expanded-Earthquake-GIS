@@ -241,16 +241,12 @@ class PointInfoPage(tk.Frame):
         response = self.wiki_text_url_request(search_data)
         if not response:
             search_data = search_data.split(",")
-            response = self.wiki_text_url_request(search_data[0])
+            response = self.wiki_text_url_request(search_data[1])
             if not response:
-                response = self.wiki_text_url_request(search_data[1])
-                if not response:
-                    self.wiki_image_data = False
-                    return False
-                else:
-                    self.wiki_image_data = search_data[1]
+                self.wiki_image_data = False
+                return False
             else:
-                self.wiki_image_data = search_data[0]
+                self.wiki_image_data = search_data[1]
         else:
             self.wiki_image_data = search_data
 
