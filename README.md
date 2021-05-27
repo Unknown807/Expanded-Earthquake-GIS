@@ -9,7 +9,6 @@ Python 3.7.3
 * matplotlib - v3.0.3
 * numpy - v1.16.3
 * beautifulsoup4 - v4.9.3
-* bs4 - v0.0.1
 * pillow - v6.0.0
 * pyproj - v1.9.6
 * requests - v2.21.0
